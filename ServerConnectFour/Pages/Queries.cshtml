@@ -1,0 +1,398 @@
+﻿@page
+@using ServerConnectFour.Models;
+@model Pages.QueriesModel
+@{
+    var userCount = Model.Games
+    .GroupBy(game => game.PlayerID)
+    .Select(group => new { PlayerName = Model.Users.FirstOrDefault(u => u.ID == group.Key).Name, GamesPlayed = group.Count() })
+    .ToList();
+
+    var usersGroups = (from gd in Model.Games
+                         group gd by gd.PlayerID into g
+                         select new 
+                         {
+                             GamesPlayed = g.Count(),
+                             Players = (from p in Model.Users
+                                        where g.Any(gd => gd.PlayerID == p.ID)
+                                        select p).ToList()
+                         }).ToList();
+
+
+    var usersWithoutGameData = (from user in Model.Users
+                                  join gameData in Model.Games on user.ID equals gameData.PlayerID into gameDataGroup
+                                  from gd in gameDataGroup.DefaultIfEmpty()
+                                  where gd == null
+                                  select user).ToList();
+
+    var userDidntPlay = new { GamesPlayed = 0, Players = new List<User>() };
+
+    userDidntPlay.Players.AddRange(usersWithoutGameData);
+    usersGroups.Add(userDidntPlay);
+
+    var CountryTables = Model.Users
+        .GroupBy(user => user.Country)
+        .Select(group => new
+        {
+            Country = group.Key,
+            Users = group.ToList()
+        })
+        .ToList();
+}
+
+<div class="container">
+
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle mb-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Players Queries
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#usersModalDesc">Show all users descending</a></li>
+            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#usersModalAsc">Show all users ascending</a></li>
+            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#usersLastGame">Player's name and the date of the last game</a></li>
+            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#countGames">Count games for each user</a></li>
+        </ul>
+    </div>
+    
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle mb-3" " type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Games Queries
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#AllGames">Show all Games</a></li>
+            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#tablePerAmount">Show table for each different amount of games</a></li>
+            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#tablePerCountry">Show tables for each country</a></li>
+
+        </ul>
+    </div>
+
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Choose user to show his game
+        </button>
+        <ul class="dropdown-menu">
+        @foreach (var user in Model.Users.OrderBy(p => p.Name))
+        {
+            <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#@user.Name">@user.Name</a></li>
+        }
+        </ul>
+    </div>
+    
+    <!-- Descending Modal  -->
+    <div class="modal fade" id="usersModalDesc" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                    <h1 class="modal-title fs-5 me-3" id="exampleModalLabel">All users descending</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table" data-sort="asc">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Country</th>
+                                    <th>Phone</th>
+
+                                </tr>
+                            </thead>
+                            <tbody id="users">
+                            @foreach (var user in Model.Users.OrderByDescending(p => p.Name.ToLower()))
+                            {
+                                <tr>
+                                    <th>@user.ID</th>
+                                    <th>@user.Name</th>
+                                    <th>@user.Country</th>
+                                    <th>@user.Phone</th>
+
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Ascending  -->
+    <div class="modal fade" id="usersModalAsc" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5 me-3" id="exampleModalLabel">All users ascending</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table" data-sort="asc">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Country</th>
+                                <th>Phone</th>
+
+                            </tr>
+                        </thead>
+                        <tbody id="users">
+                            @foreach (var user in Model.Users.OrderBy(p => p.Name.ToLower()))
+                            {
+                                <tr>
+                                    <th>@user.ID</th>
+                                    <th>@user.Name</th>
+                                    <th>@user.Country</th>
+                                    <th>@user.Phone</th>
+
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Last game for user-->
+    <div class="modal fade" id="usersLastGame" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5 me-3" id="exampleModalLabel">Player's name and the date of the last game</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Last played</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-info">
+                            @foreach (var user in Model.Games.GroupBy(g => g.PlayerID) // Group by PlayerName
+                            .Select(g => new
+                            {
+                               PlayerName = Model.Users.FirstOrDefault(p => p.ID == g.Key).Name,
+                               GameDate = g.Max(x => x.GameDate)
+                            }))
+                            {
+                                <tr>
+                                    <th>@user.PlayerName</th>
+                                    <th>@user.GameDate</th>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Games  -->
+    <div class="modal fade" id="AllGames" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5 me-3" id="exampleModalLabel">All users ascending</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Game ID</th>
+                                <th>Player ID</th>
+                                <th>Is user win?</th>
+                                <th>Game Date</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users">
+                            @foreach (var game in Model.Games.ToList())
+                            {
+                                <tr>
+                                    <th>@game.ID</th>
+                                    <th>@game.PlayerID</th>
+                                    <th>@game.PlayerWin</th>
+                                    <th>@game.GameDate</th>
+                                    <th>@game.Duration</th>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Choose user to show Games  -->
+    @foreach (var user in Model.Users.OrderBy(p => p.Name))
+        {
+        <div class="modal fade" id="@user.Name" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5 me-3" id="exampleModalLabel">Games of @user.Name</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Game number</th>
+                                    <th>Won the game?</th>
+                                    <th>Date</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users">
+                                    @foreach (var game in Model.Games.Where(game =>
+                                   game.PlayerID.Equals(user.ID))
+                                   .ToList())
+                                    {
+                                    <tr>
+                                        <th>@game.ID</th>
+                                        <th>@game.PlayerWin</th>
+                                        <th>@game.GameDate</th>
+                                        <th>@game.Duration</th>
+                                    </tr>
+                                    }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+    <!-- Count games for each user  -->
+    <div class="modal fade" id="countGames" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5 me-3" id="exampleModalLabel">All users ascending</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Player name</th>
+                                <th>Count of games</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users">
+        @foreach (var game in userCount)
+        {
+                                <tr>
+                                    <th>@game.PlayerName</th>
+                                    <th>@game.GamesPlayed</th>
+                                </tr>
+        }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tables per amount of plays  -->
+    <div class="modal fade" id="tablePerAmount" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5 me-3" id="exampleModalLabel">Table for each different amount of games</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+        @foreach (var table in usersGroups)
+        {
+            <h5>Amount of games: @table.GamesPlayed</h5>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Player name</th>
+                        <th>Country</th>
+                    </tr>
+                </thead>
+                <tbody id="users">
+                    @foreach (var game in table.Players)
+                    {
+                        <tr>
+                            <th>@game.Name</th>
+                            <th>@game.Country</th>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tables per Country -->
+    <div class="modal fade" id="tablePerCountry" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5 me-3" id="exampleModalLabel">Table for each different amount of games</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+        @foreach (var table in CountryTables)
+        {
+                        <h6>Country: @table.Country</h6>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>User id</th>
+                                    <th>User name</th>
+                                    <th>User phone</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users">
+                    @foreach (var user in table.Users)
+                    {
+                                    <tr>
+                                        <th>@user.ID</th>
+                                        <th>@user.Name</th>
+                                        <th>@user.Phone</th>
+
+                                    </tr>
+                    }
+                            </tbody>
+                        </table>
+        }
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
